@@ -483,9 +483,9 @@
 -- ORDER BY jadwal DESC, ds.nama
 
 
--- ============================================== SECTION 2 ==============================================
+-- ============================================== SECTION 3 ==============================================
 
---  # 1
+-- # 1
 
 -- SELECT
 -- 	en.id_mahasiswa,
@@ -506,29 +506,206 @@
 
 -- # 2
 
-WITH ranked_mhs AS (
-	SELECT 
-		en.id_mahasiswa,
-		CONCAT(mhs.first_name , ' ', mhs.last_name) as full_name,
-		en.id_jurusan,
-		jr.jurusan,
-		CAST(AVG(ni.nilai) as int),
-		ROW_NUMBER() OVER(PARTITION BY jr.jurusan ORDER BY AVG(ni.nilai)DESC, STDDEV(ni.nilai) DESC, MOD(ni.nilai) DESC) as rank_nilai
-	FROM nilai_v2 as ni
-	JOIN enrollment as en
-		ON ni.id_enrollment = en.id
-	JOIN jurusan as jr
-		ON en.id_jurusan = jr.id
-	JOIN mata_kuliah as mk
-		ON en.id_mata_kuliah = mk.id
-	JOIN mahasiswa as mhs
-		ON en.id_mahasiswa = mhs.id
-	GROUP BY id_mahasiswa, full_name, en.id_jurusan, jr.jurusan, ni.nilai
-	ORDER BY jurusan, rank_nilai, id_mahasiswa
-)
+-- WITH ranked_mhs AS (
+-- 	SELECT 
+-- 		en.id_mahasiswa,
+-- 		CONCAT(mhs.first_name , ' ', mhs.last_name) as full_name,
+-- 		en.id_jurusan,
+-- 		jr.jurusan,
+-- 		CAST(AVG(ni.nilai) as int),
+-- 		ROW_NUMBER() OVER(PARTITION BY jr.jurusan ORDER BY AVG(ni.nilai)DESC, STDDEV(ni.nilai) DESC) as rank_nilai
+-- 	FROM nilai_v2 as ni
+-- 	JOIN enrollment as en
+-- 		ON ni.id_enrollment = en.id
+-- 	JOIN jurusan as jr
+-- 		ON en.id_jurusan = jr.id
+-- 	JOIN mata_kuliah as mk
+-- 		ON en.id_mata_kuliah = mk.id
+-- 	JOIN mahasiswa as mhs
+-- 		ON en.id_mahasiswa = mhs.id
+-- 	GROUP BY id_mahasiswa, full_name, en.id_jurusan, jr.jurusan, ni.nilai
+-- 	ORDER BY jurusan, rank_nilai, id_mahasiswa
+-- )
 
-SELECT * FROM ranked_mhs
-WHERE rank_nilai = 3
+-- SELECT * FROM ranked_mhs
+-- WHERE rank_nilai = 3
+
+-- ==============================================
+
+--  # 3
+
+-- WITH hadir_percentage AS (
+-- 	SELECT 
+-- 		att.id_mata_kuliah,
+-- 		mk.nama as mata_kuliah,
+-- 		COUNT(att.is_hadir) as total_data,
+-- 		COUNT(CASE WHEN att.is_hadir = TRUE THEN att.is_hadir END) as total_hadir,
+-- 		ROUND((CAST(COUNT(CASE WHEN att.is_hadir = TRUE THEN att.is_hadir END) as numeric) / CAST(COUNT(is_hadir) as numeric))* 100, 2) as percentage_kehadiran
+-- 	FROM attendance as att
+-- 	JOIN mata_kuliah as mk
+-- 		ON att.id_mata_kuliah = mk.id
+-- 	GROUP BY att.id_mata_kuliah, mk.nama
+-- 	ORDER BY att.id_mata_kuliah
+-- )
+
+-- SELECT * FROM hadir_percentage
+
+-- ==============================================
+
+-- # 4
+
+-- WITH sorting_mhs AS (
+-- 	SELECT 
+-- 		en.id_mata_kuliah,
+-- 		mk.nama as mata_kuliah,
+-- 		COUNT(en.id_mahasiswa) as jumlah_mahasiswa
+-- 	FROM enrollment as en
+-- 	JOIN mata_kuliah as mk
+-- 		ON en.id_mata_kuliah = mk.id
+-- 	GROUP BY en.id_mata_kuliah, mk.nama
+-- 	ORDER BY jumlah_mahasiswa DESC
+-- )
+
+-- SELECT *
+-- FROM sorting_mhs
+-- WHERE jumlah_mahasiswa = (SELECT MAX(jumlah_mahasiswa) FROM sorting_mhs)
+-- ORDER BY id_mata_kuliah
+
+-- ==============================================
+
+--  # 5
+
+-- SELECT
+-- 	en.id_dosen,
+-- 	ds.nama as nama_dosen,
+-- 	mk.nama as mata_kuliah,
+-- 	ROUND(AVG(ni.nilai), 2) as avg_nilai
+-- FROM nilai_v2 as ni
+-- JOIN enrollment as en
+-- 	ON ni.id_enrollment = en.id
+-- JOIN dosen as ds
+-- 	ON en.id_dosen = ds.id
+-- JOIN mata_kuliah as mk
+-- 	ON en.id_mata_kuliah = mk.id
+-- GROUP BY en.id_dosen, ds.nama, mk.nama
+-- ORDER BY en.id_dosen
+
+-- ==============================================
+
+--  # 6
+
+-- WITH rank_jurusan AS (
+-- 	SELECT
+-- 		en.id_jurusan,
+-- 		jr.jurusan as jurusan,
+-- 		ROUND(AVG(ni.nilai), 2) as avg_nilai,
+-- 		RANK() OVER(ORDER BY AVG(ni.nilai) DESC) as rank_nilai
+-- 	FROM nilai_v2 as ni
+-- 	JOIN enrollment as en
+-- 		ON ni.id_enrollment = en.id
+-- 	JOIN jurusan as jr
+-- 		ON en.id_jurusan = jr.id
+-- 	GROUP BY en.id_jurusan,jr.jurusan
+-- )
+
+-- SELECT * FROM rank_jurusan
+-- WHERE rank_nilai = 4
+
+-- ==============================================
+
+--  # 7
+
+-- WITH dosen_info AS (
+-- 	SELECT 
+-- 		en.id_dosen,
+-- 		en.id_mata_kuliah,
+-- 		ds.nama as nama_dosen
+-- 	FROM enrollment as en
+-- 	JOIN dosen as ds
+-- 		ON en.id_dosen = ds.id
+-- ), mata_kuliah_info AS (
+-- 	SELECT
+-- 		att.id_mata_kuliah,
+-- 		mk.nama as nama_jurusan,
+-- 		ROUND((CAST(COUNT(CASE WHEN att.is_hadir = TRUE THEN att.is_hadir END) as numeric) / CAST(COUNT(att.is_hadir) as numeric))* 100, 2) as percentage_kehadiran
+-- 	FROM attendance as att
+-- 	JOIN mata_kuliah as mk
+-- 		ON att.id_mata_kuliah = mk.id
+-- 	GROUP BY att.id_mata_kuliah, mk.nama
+-- )
+
+
+-- SELECT
+-- 	DISTINCT
+-- 	mki.id_mata_kuliah,
+-- 	mki.nama_jurusan,
+-- 	di.nama_dosen,
+-- 	mki.percentage_kehadiran
+-- FROM mata_kuliah_info as mki
+-- JOIN dosen_info as di
+-- 	ON mki.id_mata_kuliah = di.id_mata_kuliah
+-- WHERE percentage_kehadiran > 50.0
+-- ORDER BY percentage_kehadiran DESC
+-- LIMIT 5
+
+-- ==============================================
+
+--  # 8
+
+-- SELECT
+-- 	ds.nama as nama_dosen,
+-- 	COUNT(en.id_mahasiswa) as total_mahasiswa
+-- FROM enrollment as en
+-- JOIN dosen as ds
+-- 	ON en.id_dosen = ds.id
+-- GROUP BY ds.nama
+-- ORDER BY total_mahasiswa DESC
+-- LIMIT 3
+
+-- ==============================================
+
+--  # 9
+
+-- SELECT
+-- 	att.id_mata_kuliah,
+-- 	mk.nama as mata_kuliah,
+-- 	att.week_kuliah,
+-- 	COUNT(CASE WHEN is_hadir = TRUE THEN is_hadir END) as mahasiswa_hadir
+-- FROM attendance as att
+-- JOIN mata_kuliah as mk
+-- 	ON att.id_mata_kuliah = mk.id
+-- GROUP BY att.id_mata_kuliah, mk.nama, att.week_kuliah
+-- ORDER BY att.id_mata_kuliah
+
+-- ==============================================
+
+--  # 10 
+
+-- WITH rank_mata_kuliah AS (
+-- 	SELECT
+-- 		en.id_dosen,
+-- 		ds.nama as nama_dosen,
+-- 		mk.sks
+-- 	FROM enrollment as en
+-- 	JOIN dosen as ds
+-- 		ON en.id_dosen = ds.id
+-- 	JOIN mata_kuliah as mk
+-- 		ON en.id_mata_kuliah = mk.id
+-- 	GROUP BY en.id_dosen, ds.nama, mk.sks
+-- ), rank_sks AS (
+-- 	SELECT
+-- 		id_dosen,
+-- 		nama_dosen,
+-- 		SUM(sks),
+-- 		RANK() OVER(ORDER BY SUM(sks) DESC) as rank_jumlah_sks
+-- 	FROM rank_mata_kuliah
+-- 	GROUP BY id_dosen, nama_dosen
+-- )
+
+
+-- SELECT * FROM rank_sks
+-- WHERE rank_jumlah_sks = 7
+-- ORDER BY nama_dosen LIMIT 1
 
 
 
